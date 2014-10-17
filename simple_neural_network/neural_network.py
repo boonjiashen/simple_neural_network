@@ -72,3 +72,8 @@ class SimpleNeuralNetwork():
 
         # Update weights
         self.W = [w + dw for w, dw in zip(self.W, dws)]
+
+if __name__ == "__main__":
+
+    n_feat = 8
+    ann = SimpleNeuralNetwork(n_feat)
