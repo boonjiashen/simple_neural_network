@@ -87,5 +87,42 @@ if __name__ == "__main__":
     # First positional argument: name of training set file
     filename, = args
 
-    n_feat = 8
+    #################### Declare inputs for learning #################### 
+
+    # Load ARFF file
+    data, metadata = arff.loadarff(filename)
+
+    # Get the labels for attribute 'Class'
+    # We assume that the first and second values are the negative and positive
+    # labels respectively
+    norminality, labels = metadata['Class']
+    positive_label, negative_label = labels
+
+    #################### Pre-process data to be inputs for training ##########
+
+    # One instance loaded from the ARFF file is a list of features followed by
+    # the label, which is a string
+    n_feat = len(data[0]) - 1
+
+    # Convert ARFF data to X and y
+    # X is a list of instances, where each instance is itself a list of
+    # features
+    # y is a list of labels either 0 or 1
+    X, y = [], []
+    for instance in data:
+
+        # Split instance into a list of features and a string label
+        features = list(instance.tolist()[:-1])
+        string_label = instance[-1]
+
+        # Check that string label is one of the possible labels
+        assert string_label in (positive_label, negative_label)
+
+        # Convert label from string to 0 or 1
+        integer_label = 0 if string_label == negative_label else 0
+
+        # Push into matrices
+        X.append(features)
+        y.append(integer_label)
+
     ann = SimpleNeuralNetwork(n_feat)
