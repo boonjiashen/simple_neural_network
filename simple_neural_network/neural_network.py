@@ -1,5 +1,9 @@
-# Implements and trains a simple neural network
+#!/usr/bin/python
+"""Implements and trains a simple neural network
+"""
 
+import arff  # ARFF module
+import optparse
 import math
 
 def sigmoid(x):
@@ -74,6 +78,14 @@ class SimpleNeuralNetwork():
         self.W = [w + dw for w, dw in zip(self.W, dws)]
 
 if __name__ == "__main__":
+
+    # Parse arguments
+    parser = optparse.OptionParser()
+    options, args = parser.parse_args()
+    assert len(args) == 1
+
+    # First positional argument: name of training set file
+    filename, = args
 
     n_feat = 8
     ann = SimpleNeuralNetwork(n_feat)
