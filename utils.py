@@ -1,9 +1,10 @@
 """Utility functions to train data"""
 import arff  # ARFF module
 import itertools
+import random
 
 def generate_k_less_one_and_one(items):
-    """Generator that yields all items in a list except one, each time
+    """Generator that yields a split of one item and the remaining items
 
     For example, for a list[1, 2, 3, 4]
     Call #1 yields: [2, 3, 4], 1
@@ -30,23 +31,33 @@ def generate_n_chunks(l, n):
         yield l[start_ind: end_ind]
 
 
-def generate_stratified_k_fold_indices(labels, n_folds):
+def generate_stratified_train_test_indices(labels, n_folds, randomize=False):
     """Generates index list pairs for k-fold cross validation.
 
     Each generation is a list of indices for k-1 folds and a list of indices
     for remaining fold. Labels can only be 0 or 1. Folding is stratified so
     that the label ratio of each fold is approximately preserved.
 
-    For example, if labels are [0, 0, 1, 1, 1, 0] and n_folds==3,
-    The folds are [0, 2], [1, 3], [4, 5], and therefore
-    Call #1 yields: [1, 3, 4, 5], [0, 2]
-    Call #2 yields: [0, 2, 4, 5], [1, 3]
-    Call #3 yields: [0, 1, 2, 3], [4, 5]
+    If randomize is True, indices are selected at random (while still
+    preserving label ratio).
+
+    For example, if labels = [0, 0, 1, 0, 0, 0, 1, 0, 1];
+    n_folds==3; randomize=False
+    The folds are [0, 1, 2], [3, 4, 6], [5, 7, 8]. Notice that each fold has
+    two negative labels and one positive label.
+    Call #1 yields: [3, 4, 5, 6, 7, 8], [0, 1, 2]
+    Call #2 yields: [0, 1, 2, 5, 7, 8], [3, 4, 6]
+    Call #3 yields: [0, 1, 2, 3, 4, 6], [5, 7, 8]
+
+    If randomize=True for the above example, the folds may be
+    [1, 2, 4], [0, 5, 6], [3, 7, 8]
+    Each fold still has two negative labels and one positive labels. The yield
+    works in a similar way to the non-randomized case.
     """
 
     # Get n_folds number of folds. Each fold is a list of indices
-    folds = [fold for fold in generate_stratified_fold_indices(labels,
-        n_folds)]
+    folds = [fold for fold in generate_stratified_fold_indices(
+        labels, n_folds, randomize=randomize)]
 
     assert len(folds) == n_folds
 
@@ -61,21 +72,36 @@ def generate_stratified_k_fold_indices(labels, n_folds):
         yield all_but_one_folds, remaining_fold
 
 
-def generate_stratified_fold_indices(labels, n_folds):
+def generate_stratified_fold_indices(labels, n_folds, randomize=False):
     """Generates the indices for one fold, then the second fold, etc
 
     Labels can only be 0 or 1. Folding is stratified so that the label ratio of
     each fold is approximately preserved.
 
-    For example, if labels are [0, 0, 1, 1, 1, 0] and n_folds==3,
+    If randomize is True, indices are selected at random while still preserving
+    label ratio for each fold.
+
+    For example, if labels are [0, 0, 1, 1, 1, 0], n_folds==3, randomize=False,
     Call #1 yields: [0, 2]
     Call #2 yields: [1, 3]
     Call #3 yields: [4, 5]
+
+    If randomize=True, the following may occur:
+    Call #1 yields: [3, 5]
+    Call #2 yields: [0, 4]
+    Call #3 yields: [1, 2]
+    Note that just like the randomize=False case, each fold has one positive
+    and one negative label.
     """
 
     # Indices of 0 and 1 in labels
     all_indices_for_0 = [i for i, x in enumerate(labels) if x == 0]
     all_indices_for_1 = [i for i, x in enumerate(labels) if x == 1]
+
+    # Shuffle indices
+    if randomize:
+        random.shuffle(all_indices_for_0)
+        random.shuffle(all_indices_for_1)
 
     # Yield indices in step-size chunks
     gen_indices_for_0 = generate_n_chunks(all_indices_for_0, n_folds)
@@ -104,7 +130,7 @@ def load_binary_class_data(arff_file):
     # We assume that the first and second values are the negative and positive
     # labels respectively
     norminality, labels = metadata['Class']
-    positive_label, negative_label = labels
+    negative_label, positive_label = labels
 
     # Convert ARFF data to X and y
     # X is a list of instances, where each instance is itself a list of
@@ -127,5 +153,5 @@ def load_binary_class_data(arff_file):
         X.append(features)
         y.append(integer_label)
 
-    return X, y
+    return X, y, negative_label, positive_label
 
