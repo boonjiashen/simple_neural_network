@@ -79,6 +79,18 @@ class SimpleNeuralNetwork():
         # Update weights
         self.W = [w + dw for w, dw in zip(self.W, dws)]
 
+    def calculate_accuracy(self, X, y):
+        """Calculate the accuracy of the model on a labelled dataset
+        """
+
+        predictions = [ann.predict(x) for x in X]
+        n_correct_predictions = sum([prediction == truth
+            for prediction, truth in zip(predictions, y)
+            ])
+        accuracy = 1. * n_correct_predictions / len(X)
+
+        return accuracy
+
 
 def generate_k_less_one_and_one(items):
     """Generator that yields all items in a list except one, each time
@@ -165,14 +177,6 @@ def generate_stratified_fold_indices(labels, n_folds):
 
 if __name__ == "__main__":
 
-    labels = [0, 0, 1, 1, 1, 1, 0]
-    for x, y in generate_stratified_k_fold_indices(labels, 3): print x, y
-    print labels
-
-    labels = [0, 0, 1, 1, 1, 1, 0]
-    for i in generate_stratified_fold_indices(labels, 3): print i
-    print labels
-
     # Parse arguments
     parser = optparse.OptionParser()
     options, args = parser.parse_args()
@@ -221,8 +225,6 @@ if __name__ == "__main__":
 
     #################### Train neural network#################### 
 
-    ann = SimpleNeuralNetwork(n_feat)
-
     # Shuffle dataset
     n_instances = len(X)
     indices = range(n_instances)
@@ -233,23 +235,35 @@ if __name__ == "__main__":
     def get_L2_norm(vector):
         return sum([x**2 for x in vector])**.5
 
-    # Train neural network by stochastic gradient descent
-    for iter_ind in 10*range(n_instances):
+    # Perform k folds cross validation
+    n_folds = 10;
+    n_epochs = 1000;
+    train_accuracies, test_accuracies = [], []
+    for training_inds, test_inds in generate_stratified_k_fold_indices(y,
+            n_folds):
 
-        instance, label = X[iter_ind], y[iter_ind]
+        # Initialize network
+        ann = SimpleNeuralNetwork(n_feat)
 
-        ann.train(instance, label)
+        # Train network by stochastic gradient descent
+        for training_ind in n_epochs * training_inds:
+            instance, label = X[training_ind], y[training_ind]
+            ann.train(instance, label)
 
-        # Evaluate training accuracy every few training iterations
-        if iter_ind % 100 == 0:
+        # Calculate training accuracy
+        X_train = [X[i] for i in training_inds]
+        y_train = [y[i] for i in training_inds]
+        train_accuracy = ann.calculate_accuracy(X_train, y_train)
 
-            # Calculate training accuracy
-            predictions = [ann.predict(x) for x in X]
-            n_correct_predictions = sum([prediction == truth
-                for prediction, truth in zip(predictions, y)
-                ])
-            training_accuracy = 1. * n_correct_predictions / len(X)
+        # Calculate test accuracy
+        X_test = [X[i] for i in test_inds]
+        y_test = [y[i] for i in test_inds]
+        test_accuracy = ann.calculate_accuracy(X_test, y_test)
 
-            try: training_accuracies
-            except NameError: training_accuracies = []
-            training_accuracies.append(training_accuracy)
+        train_accuracies.append(train_accuracy)
+        test_accuracies.append(test_accuracy)
+
+    ave_train_accuracy = 1. * sum(train_accuracies) / len(train_accuracies)
+    ave_test_accuracy = 1. * sum(test_accuracies) / len(test_accuracies)
+
+    print ave_train_accuracy, ave_test_accuracy
