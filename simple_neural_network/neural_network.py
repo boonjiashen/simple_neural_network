@@ -5,6 +5,7 @@
 import arff  # ARFF module
 import optparse
 import math
+import random
 
 def sigmoid(x):
     "Returns the sigmoid of a number, 1 / (1 + exp(-x))"
@@ -135,10 +136,48 @@ if __name__ == "__main__":
         assert string_label in (positive_label, negative_label)
 
         # Convert label from string to 0 or 1
-        integer_label = 0 if string_label == negative_label else 0
+        integer_label = 0 if string_label == negative_label else 1
 
         # Push into matrices
         X.append(features)
         y.append(integer_label)
 
+    #################### Train neural network#################### 
+
     ann = SimpleNeuralNetwork(n_feat)
+
+    # Shuffle dataset
+    n_instances = len(X)
+    indices = range(n_instances)
+    random.shuffle(indices)
+    X = [X[i] for i in indices]
+    y = [y[i] for i in indices]
+
+    def get_L2_norm(vector):
+        return sum([x**2 for x in vector])**.5
+
+    # Train neural network by stochastic gradient descent
+    for iter_ind in 10*range(n_instances):
+
+        instance, label = X[iter_ind], y[iter_ind]
+
+        ann.train(instance, label)
+
+        # Evaluate training accuracy
+        if iter_ind % 100 == 0:
+
+            # Calcluate training accuracy
+            predictions = [ann.predict(x) for x in X]
+            n_correct_predictions = sum([prediction == truth
+                for prediction, truth in zip(predictions, y)
+                ])
+            training_accuracy = 1. * n_correct_predictions / len(X)
+
+            try: training_accuracies
+            except NameError: training_accuracies = []
+            training_accuracies.append(training_accuracy)
+
+        #try: magnitudes
+        #except NameError: magnitudes = []
+        #magnitude = get_L2_norm(ann.W)
+        #magnitudes.append(magnitude)
