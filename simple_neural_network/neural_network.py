@@ -222,56 +222,38 @@ def load_binary_class_data(arff_file):
 
 if __name__ == "__main__":
 
-    # Parse arguments
+
+    ###################### Parse arguments ######################
+
     parser = optparse.OptionParser()
     options, args = parser.parse_args()
-    assert len(args) == 1
+    assert len(args) == 4
 
-    # First positional argument: name of training set file
-    filename, = args
+    # Positional argument 1: name of training set file
+    # Positional argument 2: number of folds for cross-validation
+    # Positional argument 3: learning rate of stochastic gradient descent
+    # Positional argument 4: number of epochs for training
+    filename, n_folds, learning_rate, n_epochs = args
+    n_folds = int(n_folds)
+    learning_rate = float(learning_rate)
+    n_epochs = int(n_epochs)
+
 
     #################### Declare inputs for learning #################### 
 
-    # Load ARFF file
-    data, metadata = arff.loadarff(filename)
+    # Load dataset X and labels y from ARFF file
+    X, y = load_binary_class_data(filename)
 
-    # Get the labels for attribute 'Class'
-    # We assume that the first and second values are the negative and positive
-    # labels respectively
-    norminality, labels = metadata['Class']
-    positive_label, negative_label = labels
+    # Size of data set
+    n_instances = len(X)
 
-    #################### Pre-process data to be inputs for training ##########
+    # Size of each feature vector
+    n_feat = len(X[0])
 
-    # One instance loaded from the ARFF file is a list of features followed by
-    # the label, which is a string
-    n_feat = len(data[0]) - 1
-
-    # Convert ARFF data to X and y
-    # X is a list of instances, where each instance is itself a list of
-    # features
-    # y is a list of labels either 0 or 1
-    X, y = [], []
-    for instance in data:
-
-        # Split instance into a list of features and a string label
-        features = list(instance.tolist()[:-1])
-        string_label = instance[-1]
-
-        # Check that string label is one of the possible labels
-        assert string_label in (positive_label, negative_label)
-
-        # Convert label from string to 0 or 1
-        integer_label = 0 if string_label == negative_label else 1
-
-        # Push into matrices
-        X.append(features)
-        y.append(integer_label)
 
     #################### Train neural network#################### 
 
     # Shuffle dataset
-    n_instances = len(X)
     indices = range(n_instances)
     random.shuffle(indices)
     X = [X[i] for i in indices]
@@ -281,8 +263,6 @@ if __name__ == "__main__":
         return sum([x**2 for x in vector])**.5
 
     # Perform k folds cross validation
-    n_folds = 10;
-    n_epochs = 1000;
     train_accuracies, test_accuracies = [], []
     for training_inds, test_inds in generate_stratified_k_fold_indices(y,
             n_folds):
@@ -293,7 +273,7 @@ if __name__ == "__main__":
         # Train network by stochastic gradient descent
         for training_ind in n_epochs * training_inds:
             instance, label = X[training_ind], y[training_ind]
-            ann.train(instance, label)
+            ann.train(instance, label, learning_rate=learning_rate)
 
         # Calculate training accuracy
         X_train = [X[i] for i in training_inds]
