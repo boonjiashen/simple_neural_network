@@ -175,6 +175,51 @@ def generate_stratified_fold_indices(labels, n_folds):
         yield inds_for_0 + inds_for_1
 
 
+def load_binary_class_data(arff_file):
+    """Returns 2 values - training instances and labels from an ARFF file.
+
+    Labels should have attribute 'Class' in the ARFF file.  We assume that the
+    first and second values are the negative and positive labels respectively.
+    Then, negative labels are labeled 0 and positive labels are labeled 1.
+
+    Returns:
+    X - n_instances-length list of n_feat-length lists
+    y - n_instances-length list of integers, either of value 0 or 1.
+    """
+
+    # Load ARFF file
+    data, metadata = arff.loadarff(arff_file)
+
+    # Get the labels for attribute 'Class'
+    # We assume that the first and second values are the negative and positive
+    # labels respectively
+    norminality, labels = metadata['Class']
+    positive_label, negative_label = labels
+
+    # Convert ARFF data to X and y
+    # X is a list of instances, where each instance is itself a list of
+    # features
+    # y is a list of labels either 0 or 1
+    X, y = [], []
+    for instance in data:
+
+        # Split instance into a list of features and a string label
+        features = list(instance.tolist()[:-1])
+        string_label = instance[-1]
+
+        # Check that string label is one of the possible labels
+        assert string_label in (positive_label, negative_label)
+
+        # Convert label from string to 0 or 1
+        integer_label = 0 if string_label == negative_label else 1
+
+        # Push into matrices
+        X.append(features)
+        y.append(integer_label)
+
+    return X, y
+
+
 if __name__ == "__main__":
 
     # Parse arguments
