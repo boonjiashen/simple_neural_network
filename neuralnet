@@ -36,7 +36,8 @@ if __name__ == "__main__":
     #################### Declare inputs for learning #################### 
 
     # Load dataset X and labels y from ARFF file
-    X, y = utils.load_binary_class_data(filename)
+    X, y, negative_label, positive_label =  \
+            utils.load_binary_class_data(filename)
 
     # Size of data set
     n_instances = len(X)
@@ -45,22 +46,21 @@ if __name__ == "__main__":
     n_feat = len(X[0])
 
 
-    #################### Train neural network#################### 
+    #################### Train neural network #################### 
 
-    # Shuffle dataset
-    indices = range(n_instances)
-    random.seed(0)
-    random.shuffle(indices)
-    X = [X[i] for i in indices]
-    y = [y[i] for i in indices]
+    # Values to be written in output file
+    predictions = n_instances * [None]  # list of labels according to ARFF file
+    outputs = n_instances * [None]  # list of numbers according to ANN output
+    fold_assignments = n_instances * [None]  # numbers in interval [1, n_folds]
 
-    def get_L2_norm(vector):
-        return sum([x**2 for x in vector])**.5
+    # Fold of the test set. We start with n_folds and decrement to 1
+    test_fold_assignment = n_folds
 
     # Perform k folds cross validation
-    train_accuracies, test_accuracies = [], []
-    for training_inds, test_inds in  \
-            utils.generate_stratified_k_fold_indices(y, n_folds):
+    # Each scheme is a 2-ple of indices for the training set and test set
+    partition_scheme_generator = utils.generate_stratified_train_test_indices(y,
+            n_folds, randomize=True)
+    for training_inds, test_inds in partition_scheme_generator:
 
         # Initialize network
         ann = SimpleNeuralNetwork(n_feat)
@@ -70,20 +70,38 @@ if __name__ == "__main__":
             instance, label = X[training_ind], y[training_ind]
             ann.train(instance, label, learning_rate=learning_rate)
 
-        # Calculate training accuracy
-        X_train = [X[i] for i in training_inds]
-        y_train = [y[i] for i in training_inds]
-        train_accuracy = ann.calculate_accuracy(X_train, y_train)
+        # Get non-binarized and binarized predictions of test set
+        for ti in test_inds:
+            instance = X[ti]
+            predictions[ti] = positive_label  \
+                    if ann.predict(instance) == 1 \
+                    else negative_label
+            outputs[ti] = ann.output(instance)
 
-        # Calculate test accuracy
-        X_test = [X[i] for i in test_inds]
-        y_test = [y[i] for i in test_inds]
-        test_accuracy = ann.calculate_accuracy(X_test, y_test)
+        # Remember in which fold was each instance in the test set
+        for ti in test_inds:
+            fold_assignments[ti] = test_fold_assignment
 
-        train_accuracies.append(train_accuracy)
-        test_accuracies.append(test_accuracy)
+        # Decrement fold value for next partition scheme
+        test_fold_assignment = test_fold_assignment - 1
 
-    ave_train_accuracy = mean(train_accuracies)
-    ave_test_accuracy = mean(test_accuracies)
 
-    print ave_train_accuracy, ave_test_accuracy
+    ##################### Write output to stdout #################### 
+    
+    # Our program should do stratified cross validation with the specified
+    # number of folds. As output, it should print one line for each instance
+    # (in the same order as the data file) indicating (i) the fold to which the
+    # instance was assigned (1 to n), (ii) the predicted class, (iii) the
+    # actual class, (iv) the confidence of the instance being positive (i.e.
+    # the output of the sigmoid).
+
+    for ii in range(n_instances):  # index of instance
+        true_label = positive_label  \
+                if y[ii] == 1 \
+                else negative_label
+        print "%i %s %s %f" % (
+                fold_assignments[ii],
+                predictions[ii],
+                true_label,
+                outputs[ii]
+                )
