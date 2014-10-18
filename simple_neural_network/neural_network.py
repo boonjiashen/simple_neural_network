@@ -77,6 +77,22 @@ class SimpleNeuralNetwork():
         # Update weights
         self.W = [w + dw for w, dw in zip(self.W, dws)]
 
+def generate_k_less_one_and_one(items):
+    """Generator that yields all items in a list except one, each time
+
+    For example, for a list[1, 2, 3, 4]
+    Call #1 yields: [2, 3, 4], 1
+    Call #2 yields: [1, 3, 4], 2
+    Call #3 yields: [1, 2, 4], 3
+    Call #4 yields: [1, 2, 3], 4
+    """
+
+    for removed_ind in range(len(items)):
+        k_less_one = [x for i, x in enumerate(items) if i != removed_ind]
+        one = items[removed_ind]
+
+        yield k_less_one, one
+
 if __name__ == "__main__":
 
     # Parse arguments
