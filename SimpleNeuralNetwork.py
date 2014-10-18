@@ -23,6 +23,7 @@ class SimpleNeuralNetwork():
             # this is a list of size n_feat
     b = 0  # scalar bias term of the input layer
 
+
     def __init__(self, n_feat, initial_weight=0.1):
         """n_feat is the size of the input layer (exluding the bias unit).
         Weights and bias terms are initialized to initial_weight.
@@ -32,17 +33,28 @@ class SimpleNeuralNetwork():
         self.W = [initial_weight for i in range(n_feat)]
         self.b = initial_weight
 
-    def predict(self, X):
-        """Predicts the class of X. It predicts 1 if the output of the output
-        unit is more than 0.5
+
+    def output(self, instance):
+        """Returns the non-binarized output of the network for an instance
         """
 
         # Logit is the net input to the output unit
-        logit = sum([w * x for w, x in zip(self.W, X)])
+        logit = sum([w * x for w, x in zip(self.W, instance)])
 
-        predicted_class = 1 if sigmoid(logit) > 0.5 else 0
+        # Output is the sigmoid of the logit
+        output = sigmoid(logit)
+
+        return output
+
+
+    def predict(self, instance):
+        """Predicts the class of an instance. It predicts 1 if the output of
+        the output unit is more than 0.5 """
+
+        predicted_class = 1 if self.output(instance) > 0.5 else 0
 
         return predicted_class
+
 
     def calculate_error(self, X, y):
         """Returns the error & error derivative of the weights given a labelled
@@ -61,6 +73,7 @@ class SimpleNeuralNetwork():
 
         return error, dEdw
 
+
     def train(self, X, y, learning_rate=0.1):
         """Update weights given one labelled instance (i.e. online training)
         """
@@ -73,6 +86,7 @@ class SimpleNeuralNetwork():
 
         # Update weights
         self.W = [w + dw for w, dw in zip(self.W, dws)]
+
 
     def calculate_accuracy(self, X, y):
         """Calculate the accuracy of the model on a labelled dataset
