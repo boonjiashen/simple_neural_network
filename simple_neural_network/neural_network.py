@@ -2,6 +2,7 @@
 """Implements and trains a simple neural network
 """
 
+import itertools
 import arff  # ARFF module
 import optparse
 import math
@@ -78,6 +79,7 @@ class SimpleNeuralNetwork():
         # Update weights
         self.W = [w + dw for w, dw in zip(self.W, dws)]
 
+
 def generate_k_less_one_and_one(items):
     """Generator that yields all items in a list except one, each time
 
@@ -94,7 +96,82 @@ def generate_k_less_one_and_one(items):
 
         yield k_less_one, one
 
+
+def generate_n_chunks(l, n):
+    """Yield n successive chunks from l.
+    """
+
+    for i in range(n):
+        start_ind = i * len(l) / n
+        end_ind = (i + 1) * len(l) / n
+
+        yield l[start_ind: end_ind]
+
+
+def generate_stratified_k_fold_indices(labels, n_folds):
+    """Generates index list pairs for k-fold cross validation.
+
+    Each generation is a list of indices for k-1 folds and a list of indices
+    for remaining fold. Labels can only be 0 or 1. Folding is stratified so
+    that the label ratio of each fold is approximately preserved.
+
+    For example, if labels are [0, 0, 1, 1, 1, 0] and n_folds==3,
+    The folds are [0, 2], [1, 3], [4, 5], and therefore
+    Call #1 yields: [1, 3, 4, 5], [0, 2]
+    Call #2 yields: [0, 2, 4, 5], [1, 3]
+    Call #3 yields: [0, 1, 2, 3], [4, 5]
+    """
+
+    # Get n_folds number of folds. Each fold is a list of indices
+    folds = [fold for fold in generate_stratified_fold_indices(labels,
+        n_folds)]
+
+    assert len(folds) == n_folds
+
+    # In each iteration we lump all but one folds together and yield both
+    for i in range(n_folds):
+        remaining_fold = folds[i];
+        all_but_one_folds = [x
+                for fi, fold in enumerate(folds)
+                if fi != i
+                for x in fold]
+
+        yield all_but_one_folds, remaining_fold
+
+
+def generate_stratified_fold_indices(labels, n_folds):
+    """Generates the indices for one fold, then the second fold, etc
+
+    Labels can only be 0 or 1. Folding is stratified so that the label ratio of
+    each fold is approximately preserved.
+
+    For example, if labels are [0, 0, 1, 1, 1, 0] and n_folds==3,
+    Call #1 yields: [0, 2]
+    Call #2 yields: [1, 3]
+    Call #3 yields: [4, 5]
+    """
+
+    # Indices of 0 and 1 in labels
+    all_indices_for_0 = [i for i, x in enumerate(labels) if x == 0]
+    all_indices_for_1 = [i for i, x in enumerate(labels) if x == 1]
+
+    # Yield indices in step-size chunks
+    gen_indices_for_0 = generate_n_chunks(all_indices_for_0, n_folds)
+    gen_indices_for_1 = generate_n_chunks(all_indices_for_1, n_folds)
+    for inds_for_0, inds_for_1 in itertools.izip(gen_indices_for_0,
+            gen_indices_for_1):
+        yield inds_for_0 + inds_for_1
+
+
 if __name__ == "__main__":
+
+    labels = [0, 0, 1, 1, 1, 1, 0]
+    for x, y in generate_stratified_k_fold_indices(labels, 3): print x, y
+    print labels
+
+    labels = [0, 0, 1, 1, 1, 1, 0]
+    for i in generate_stratified_fold_indices(labels, 3): print i
+    print labels
 
     # Parse arguments
     parser = optparse.OptionParser()
@@ -163,10 +240,10 @@ if __name__ == "__main__":
 
         ann.train(instance, label)
 
-        # Evaluate training accuracy
+        # Evaluate training accuracy every few training iterations
         if iter_ind % 100 == 0:
 
-            # Calcluate training accuracy
+            # Calculate training accuracy
             predictions = [ann.predict(x) for x in X]
             n_correct_predictions = sum([prediction == truth
                 for prediction, truth in zip(predictions, y)
@@ -176,8 +253,3 @@ if __name__ == "__main__":
             try: training_accuracies
             except NameError: training_accuracies = []
             training_accuracies.append(training_accuracy)
-
-        #try: magnitudes
-        #except NameError: magnitudes = []
-        #magnitude = get_L2_norm(ann.W)
-        #magnitudes.append(magnitude)
