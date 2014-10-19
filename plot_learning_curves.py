@@ -4,7 +4,7 @@
 import os
 import matplotlib.pyplot as plt
 
-n_folds = 3
+n_folds = 10 
 learning_rate = 0.1
 list_of_n_epochs = [1, 10, 100, 1000]
 filename = "train_and_test_accuracies"
@@ -16,24 +16,46 @@ def generate_data_points():
     Each line in the file is the training accuracy followed by the test
     accuracy"""
 
+    os.system('rm ' + filename)
+
     # Generate plot points
     for n_epochs in list_of_n_epochs:
 
+        # Generate test results for a particular n_epochs
+        tmp_filename = 'tmp'
         stdout_cmd = "./neuralnet data/sonar.arff %i %f %i" % (n_folds, learning_rate,
                 n_epochs)
-        os.system(stdout_cmd + " >> " + filename)
+        os.system('rm ' + tmp_filename)
+        os.system(stdout_cmd + " >> " + tmp_filename)
+
+        # Calculate test_accuracy for this particular n_epochs
+        with open(tmp_filename, 'r') as fid:
+            n_predictions = 0
+            n_correct_predictions = 0
+
+            for line in fid:
+                prediction, true_label = line.split()[1:3]
+                n_predictions = n_predictions + 1
+                n_correct_predictions = n_correct_predictions +  \
+                        (prediction == true_label)
+
+            test_accuracy = n_correct_predictions * 1. / n_predictions
+
+        # Write test accuracy to file
+        with open(filename, 'a') as fid:
+            fid.write('%f ' % test_accuracy)
 
 
 def plot():
     """Plot learning curves"""
 
-    # Load data points from file
+    # Get data points
     with open(filename, 'r') as fid:
-        train_and_test_pairs = [map(float, line.split()) for line in fid]
-    train_accuracies, test_accuracies = zip(*train_and_test_pairs)
+        test_accuracies = map(float, fid.next().split())
+
+    print test_accuracies
 
     # Plot data points
-    plt.plot(list_of_n_epochs, train_accuracies, label="Training accuracy")
     plt.plot(list_of_n_epochs, test_accuracies, label="Test accuracy")
 
     # Prettify plot
