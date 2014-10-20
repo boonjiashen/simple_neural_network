@@ -1,0 +1,17 @@
+Implements a simple neural network as well as diagnosis tools
+
+
+AUTHOR
+----------------------------------------
+Jia-Shen Boon <jiashen@gmail.com>
+
+
+RUN
+----------------------------------------
+>> ./neuralnet <training_set_file.arff> <n_folds> <learning_rate> <n_epochs>
+
+Arguments:
+Positional argument 1: name of training set file
+Positional argument 2: number of folds for cross-validation
+Positional argument 3: learning rate of stochastic gradient descent
+Positional argument 4: number of epochs for training
