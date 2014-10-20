@@ -1,7 +1,8 @@
 #!/usr/bin/python
-"""Perform cross-validation to get test and training accuracy on a neural
-network.
+"""Perform K-folds cross-validation on a simple neural network. Data is read
+from a ARFF file. Results are written to stdout.
 """
+
 import optparse
 import math
 import random
@@ -17,7 +18,7 @@ def mean(list_of_numbers):
 if __name__ == "__main__":
 
 
-    ###################### Parse arguments ######################
+    ######################### Parse arguments #################################
 
     parser = optparse.OptionParser()
     options, args = parser.parse_args()
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     n_epochs = int(n_epochs)
 
 
-    #################### Declare inputs for learning #################### 
+    ######################### Declare inputs for learning #####################
 
     # Load dataset X and labels y from ARFF file
     X, y, negative_label, positive_label =  \
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     n_feat = len(X[0])
 
 
-    #################### Train neural network #################### 
+    ######################### Train neural network ############################
 
     # Values to be written in output file
     predictions = n_instances * [None]  # list of labels according to ARFF file
@@ -86,7 +87,7 @@ if __name__ == "__main__":
         test_fold_assignment = test_fold_assignment - 1
 
 
-    ##################### Write output to stdout #################### 
+    ######################### Write output to stdout ##########################
     
     # Our program should do stratified cross validation with the specified
     # number of folds. As output, it should print one line for each instance
