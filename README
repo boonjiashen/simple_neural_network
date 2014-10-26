@@ -15,3 +15,9 @@ Positional argument 1: name of training set file
 Positional argument 2: number of folds for cross-validation
 Positional argument 3: learning rate of stochastic gradient descent
 Positional argument 4: number of epochs for training
+
+The program does stratified cross validation with the specified number of
+folds. As output, it prints one line for each instance (in the same order as
+the data file) indicating (i) the fold to which the instance was assigned (1 to
+n), (ii) the predicted class, (iii) the actual class, (iv) the confidence of
+the instance being positive (i.e. the output of the sigmoid).
